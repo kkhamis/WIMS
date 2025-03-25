@@ -1,2 +1,2 @@
 # WIMS
-Interact with the EA WIMS database
+Code to interact with the EA WIMS database using the API
