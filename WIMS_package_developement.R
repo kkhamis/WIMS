@@ -5,6 +5,8 @@
 #
 ################################
 
+install.packages("tidyterra")
+
 library(tidyverse)
 library(httr2)
 library(jsonlite)
@@ -14,7 +16,7 @@ library(leaflet)
 library(htmltools)
 library(sf)
 library(terra)
-
+library(tidyterra)
 ###############################
 #load EA info files
 
@@ -87,29 +89,23 @@ wims_api_vars <-function(base,n,site,vars){
 }
 
 
-
-
 #########Load open rivers data####################################
 
-catchments<-readRDS(file = "test_catchments.rds")
+catchments<-readRDS(file = "Open_rivers/test_catchments.rds")
 
-O_rivers_info<- st_read("../ORN_v2.gpkg")
+O_rivers_info<- st_read("ORN_v2.gpkg")
 
-O_rivers_layers<-st_layers("../ORN_v2.gpkg")
+O_rivers_layers<-st_layers("ORN_v2.gpkg")
 
-#test_catchments<- st_read("../ORN_v2.gpkg", layer = "ORN_Catchments") 
-O_rivers_points<- st_read("../ORN_v2.gpkg", layer = "ORN_Sampled_100m") 
-
-
-#writeRDS(O_rivers_points,"O_rivers_points.rds")
+O_rivers_points<- st_read("ORN_v2.gpkg", layer = "ORN_Sampled_100m") 
 
 ##reorder based on sample id
 
-open_catchments<-dplyr::arrange(test_catchments,SampleID)
+open_catchments<-dplyr::arrange(catchments,SampleID)
 
-############Read landcover raster
+############Read landcover raster ###
 
-lcm_2023<-terra::rast(x = "C:\\Users\\khamisk\\Dropbox\\LCM_2023_10m\\lcm-2023-10m_5816930\\gblcm2023_10m.tif")
+lcm_2023<-terra::rast(x = "lcm-2023-10m_5816930/gblcm2023_10m.tif")
 
 Catch_Tame<-catch |> filter(MNCAT_NAME=="Tame Anker and Mease"|MNCAT_NAME=="Trent Valley Staffordshire" |
                               MNCAT_NAME== "Dove") 
@@ -117,6 +113,11 @@ Catch_Tame<-catch |> filter(MNCAT_NAME=="Tame Anker and Mease"|MNCAT_NAME=="Tren
 lcm_2023_Tame <- terra::crop(lcm_2023, Catch_Tame, mask=TRUE)   #clip raster 
 
 rast<-lcm_2023_Tame[[1]]
+
+
+ggplot() +
+  geom_spatraster(data = rast) 
+
 
 coords <- xyFromCell(rast, seq_len(ncell(rast)))
 dat <- terra::values(rast, dataframe = TRUE)
@@ -146,7 +147,7 @@ ggplot(data = dat) +
 
 
 
-api_upTame<-
+api_upTame <-
   request(base_url = "https://environment.data.gov.uk/water-quality/id") |>  
   req_url_path_append(paste("sampling-point?_limit=5000&subArea=2-29-B")) |>  
   req_perform()
@@ -154,7 +155,6 @@ api_upTame<-
 
 df_Tame<-fromJSON(rawToChar(api_upTame$body),simplifyDataFrame = T)
 
-df_Tame$items$samplingPointType$label
 
 FW_samples<-df_Tame$items$samplingPointType$label=="FRESHWATER - RIVERS"
 
